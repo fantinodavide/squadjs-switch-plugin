@@ -1,4 +1,4 @@
-## SquadNameValidator
+## SquadJS Switch Plugin
 Switch plugin for SquadJS.
 
 ### Example configuration
