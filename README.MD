@@ -4,7 +4,7 @@ Switch plugin for SquadJS.
 ### Example configuration
 ```json
 {
-    "plugin": "SquadNameValidator",
+    "plugin": "Switch",
     "enabled": true,
     "discordClient": "discord",
     "channelID": "112233445566778899",
