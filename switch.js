@@ -22,6 +22,12 @@ export default class Switch extends DiscordBasePlugin {
             //     description: "Number of switch slots, if one is free a player will instanlty get a switch",
             //     default: 2
             // },
+            doubleSwitchCommands: {
+                required: false,
+                description: 'Array of commands that can be sent in every chat to request a double switch',
+                default: [],
+                example: [ '!bug', '!stuck', '!doubleswitch' ]
+            },
             endMatchSwitchSlots: {
                 required: false,
                 description: "Number of switch slots, players will be put in a queue and switched at the end of the match",
@@ -44,6 +50,7 @@ export default class Switch extends DiscordBasePlugin {
         this.getPlayersByUsername = this.getPlayersByUsername.bind(this);
         this.getPlayerBySteamID = this.getPlayerBySteamID.bind(this);
         this.getPlayerByUsernameOrSteamID = this.getPlayerByUsernameOrSteamID.bind(this);
+        this.doubleSwitchPlayer = this.doubleSwitchPlayer.bind(this);
 
         this.matchEndSwitch = new Array(this.options.endMatchSwitchSlots > 0 ? this.options.endMatchSwitchSlots : 0);
         this.recentSwitches = [];
@@ -60,6 +67,9 @@ export default class Switch extends DiscordBasePlugin {
     async onChatMessage(info) {
         const { steamID, name: playerName } = info;
         const message = info.message.toLowerCase();
+
+        if (this.options.doubleSwitchCommands.find(c => c.toLowerCase().startsWith(message)))
+            this.doubleSwitchPlayer(steamID)
 
         if (!message.startsWith(this.options.commandPrefix)) return;
 
@@ -117,6 +127,13 @@ export default class Switch extends DiscordBasePlugin {
         const { steamID, name: playerName } = info;
 
         this.recentSwitches = this.recentSwitches.filter(p => p.steamID != steamID);
+    }
+
+    doubleSwitchPlayer(steamID) {
+        this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
+        setTimeout(() => {
+            this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
+        }, 500)
     }
 
     switchPlayer(steamID) {
