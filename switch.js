@@ -72,6 +72,7 @@ export default class Switch extends DiscordBasePlugin {
         if (subCommand) {
             switch (subCommand) {
                 case 'now':
+                    if (!isAdmin) return;
                     const pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit[ 1 ])
                     if (pl) this.switchPlayer(pl.steamID)
                     break;
