@@ -8,6 +8,7 @@ Switch plugin for SquadJS.
     "enabled": true,
     "discordClient": "discord",
     "channelID": "112233445566778899",
-    "switchCooldownHours": 3
+    "switchCooldownHours": 3,
+    "doubleSwitchCommands": [ "!bug", "!stuck", "!doubleswitch" ]
 }
 ```
