@@ -85,6 +85,10 @@ export default class Switch extends DiscordBasePlugin {
                     //     this.matchEndSwitch[ steamID.toString() ] = 
                     // }
                     break;
+                case "help":
+                    let msg = `${this.options.commandPrefix}\n > now {username|steamID}`;
+                    this.warn(steamID, msg);
+                    break;
                 default:
                     await this.warn(steamID, `Unknown vote subcommand: ${subCommand}`);
                     return;
