@@ -8,7 +8,6 @@ Switch plugin for SquadJS.
     "enabled": true,
     "discordClient": "discord",
     "channelID": "112233445566778899",
-    "duringMatchSwitchSlots": 2,
-    "endMatchSwitchSlots": 2
+    "switchCooldownHours": 3
 }
 ```
