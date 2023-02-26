@@ -77,11 +77,11 @@ export default class Switch extends DiscordBasePlugin {
         if (this.options.doubleSwitchCommands.find(c => c.toLowerCase().startsWith(message)))
             this.doubleSwitchPlayer(steamID)
 
-        const commandPrefixInUse = typeof this.options.commandPrefix === 'string' ? this.options.commandPrefix : this.options.commandPrefix.find(c => c.toLowerCase() == message);
+        const commandPrefixInUse = typeof this.options.commandPrefix === 'string' ? this.options.commandPrefix : this.options.commandPrefix.find(c => message.startsWith(c.toLowerCase()));
 
-        if ((typeof this.options.commandPrefix === 'string' && !message.startsWith(this.options.commandPrefix)) || (typeof this.options.commandPrefix === 'object' && this.options.commandPrefix.length >= 1 && !this.options.commandPrefix.find(c => c.toLowerCase() == message))) return;
+        if ((typeof this.options.commandPrefix === 'string' && !message.startsWith(this.options.commandPrefix)) || (typeof this.options.commandPrefix === 'object' && this.options.commandPrefix.length >= 1 && !this.options.commandPrefix.find(c => message.startsWith(c.toLowerCase())))) return;
 
-        this.verbose(1, 'Received command', message)
+        this.verbose(1, 'Received command', message, commandPrefixInUse)
 
         const commandSplit = message.substring(commandPrefixInUse.length).trim().split(' ');
         const subCommand = commandSplit[ 0 ];
