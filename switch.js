@@ -14,8 +14,8 @@ export default class Switch extends DiscordBasePlugin {
             ...DiscordBasePlugin.optionsSpecification,
             commandPrefix: {
                 required: false,
-                description: "Prefix of every switch command",
-                default: "!switch"
+                description: "Prefix of every switch command, can be an array",
+                default: [ "!switch", "!change" ]
             },
             // duringMatchSwitchSlots: {
             //     required: true,
@@ -27,6 +27,11 @@ export default class Switch extends DiscordBasePlugin {
                 description: 'Array of commands that can be sent in every chat to request a double switch',
                 default: [],
                 example: [ '!bug', '!stuck', '!doubleswitch' ]
+            },
+            doubleSwitchCooldownHours: {
+                required: false,
+                description: "Hours to wait before using again one of the double switch commands",
+                default: 0.5
             },
             endMatchSwitchSlots: {
                 required: false,
@@ -54,6 +59,7 @@ export default class Switch extends DiscordBasePlugin {
 
         this.matchEndSwitch = new Array(this.options.endMatchSwitchSlots > 0 ? this.options.endMatchSwitchSlots : 0);
         this.recentSwitches = [];
+        this.recentDoubleSwitches = [];
 
         this.broadcast = (msg) => { this.server.rcon.broadcast(msg); };
         this.warn = (steamid, msg) => { this.server.rcon.warn(steamid, msg); };
@@ -71,11 +77,13 @@ export default class Switch extends DiscordBasePlugin {
         if (this.options.doubleSwitchCommands.find(c => c.toLowerCase().startsWith(message)))
             this.doubleSwitchPlayer(steamID)
 
-        if (!message.startsWith(this.options.commandPrefix)) return;
+        const commandPrefixInUse = typeof this.options.commandPrefix === 'string' ? this.options.commandPrefix : this.options.commandPrefix.find(c => c.toLowerCase() == message);
+
+        if ((typeof this.options.commandPrefix === 'string' && !message.startsWith(this.options.commandPrefix)) || (typeof this.options.commandPrefix === 'object' && this.options.commandPrefix.length >= 1 && !this.options.commandPrefix.find(c => c.toLowerCase() == message))) return;
 
         this.verbose(1, 'Received command', message)
 
-        const commandSplit = message.substring(this.options.commandPrefix.length).trim().split(' ');
+        const commandSplit = message.substring(commandPrefixInUse.length).trim().split(' ');
         const subCommand = commandSplit[ 0 ];
 
         const isAdmin = info.chat === "ChatAdmin";
@@ -130,6 +138,20 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     doubleSwitchPlayer(steamID) {
+        const recentSwitch = this.recentDoubleSwitches.find(e => e.steamID == steamID);
+        const cooldownHoursLeft = (+recentSwitch?.datetime - +(new Date())) / (60 * 60 * 1000);
+
+        if (recentSwitch && cooldownHoursLeft < this.options.doubleSwitchCooldownHours) {
+            this.warn(steamID, `You have already requested a double switch in the last ${this.options.doubleSwitchCooldownHours} hours`);
+            return;
+        }
+
+        if (recentSwitch)
+            recentSwitch.datetime = new Date();
+        else
+            this.recentDoubleSwitches.push({ steamID: steamID, datetime: new Date() })
+
+
         this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
         setTimeout(() => {
             this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
