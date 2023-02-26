@@ -135,6 +135,7 @@ export default class Switch extends DiscordBasePlugin {
         const { steamID, name: playerName } = info;
 
         this.recentSwitches = this.recentSwitches.filter(p => p.steamID != steamID);
+        this.recentDoubleSwitches = this.recentDoubleSwitches.filter(p => p.steamID != steamID);
     }
 
     doubleSwitchPlayer(steamID) {
