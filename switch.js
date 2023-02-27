@@ -56,6 +56,8 @@ export default class Switch extends DiscordBasePlugin {
         this.getPlayerBySteamID = this.getPlayerBySteamID.bind(this);
         this.getPlayerByUsernameOrSteamID = this.getPlayerByUsernameOrSteamID.bind(this);
         this.doubleSwitchPlayer = this.doubleSwitchPlayer.bind(this);
+        this.getFactionId = this.getFactionId.bind(this);
+        this.switchSquad = this.switchSquad.bind(this);
 
         this.matchEndSwitch = new Array(this.options.endMatchSwitchSlots > 0 ? this.options.endMatchSwitchSlots : 0);
         this.recentSwitches = [];
@@ -94,6 +96,10 @@ export default class Switch extends DiscordBasePlugin {
                     const pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit[ 1 ])
                     if (pl) this.switchPlayer(pl.steamID)
                     break;
+                case 'squad':
+                    if (!isAdmin) return;
+                    await this.switchSquad(+commandSplit[ 1 ], commandSplit[ 2 ])
+                    break;
                 case "matchend":
                     // const switchData = {
                     //     from: +info.player.teamID,
@@ -105,7 +111,7 @@ export default class Switch extends DiscordBasePlugin {
                     // }
                     break;
                 case "help":
-                    let msg = `${this.options.commandPrefix}\n > now {username|steamID}`;
+                    let msg = `${this.options.commandPrefix}\n > now {username|steamID}\n > squad {squad_number} {teamID|teamString}`;
                     this.warn(steamID, msg);
                     break;
                 default:
@@ -157,6 +163,51 @@ export default class Switch extends DiscordBasePlugin {
         setTimeout(() => {
             this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
         }, 500)
+    }
+
+    switchSquad(number, team) {
+        let team_id = null;
+
+        this.verbose(1, 'Layer', this.server.currentLayer.teams)
+
+        if (+team >= 0) team_id = +team;
+        else team_id = this.getFactionId(team);
+
+        if (!team_id) {
+            this.verbose(1, "Could not find a faction from:", team);
+            return;
+        }
+
+        // this.verbose(1, `Switching squad ${number}, team ${team_id}`);
+
+        for (let p of this.server.players.filter((p) => p.teamID == team_id && p.squadID == number))
+            this.switchPlayer(p.steamID)
+    }
+
+    getFactionId(team) {
+        team = team.toUpperCase();
+
+        const translations = {
+            'United States Army': "USA",
+            'United States Marine Corps': "USMC",
+            'Russian Ground Forces': "RUS",
+            'British Army': "GB",
+            'Canadian Army': "CAF",
+            'Australian Defence Force': "AUS",
+            'Irregular Militia Forces': "IRR",
+            'Middle Eastern Alliance': "MEA",
+            'Insurgent Forces': "INS"
+        }
+
+        for (let t in this.server.currentLayer.teams) {
+            // this.verbose(1, `Checking "${team}" with "${t}-${this.server.currentLayer.teams[ t ].faction}" - ${translations[ this.server.currentLayer.teams[ t ].faction ]}`, this.server.currentLayer.teams[ t ].faction.split(' ').map(e => e[ 0 ]).join('').toUpperCase())
+            if (
+                (translations[ this.server.currentLayer.teams[ t ].faction ]?.toUpperCase() == team) ||
+                (this.server.currentLayer.teams[ t ].faction.split(' ').map(e => e[ 0 ]).join('').toUpperCase() == team)
+            ) return +t + 1;
+        }
+
+        return null;
     }
 
     switchPlayer(steamID) {
