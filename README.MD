@@ -10,6 +10,8 @@ Switch plugin for SquadJS.
 #### Admin Commands
 - `!switch now {username}` - Changes team of a player by its username.
 - `!switch now {steamID}` - Changes team of a player by its SteamID64.
+- `!switch squad {squad_number} {team_short_name}` - Changes team of all the players of a squad by squad number and team short name.
+- `!switch squad {squad_number} {teamID}` - Changes team of all the players of a squad by squad number and team ID.
 
 ### Example configuration
 ```json
