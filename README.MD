@@ -26,6 +26,7 @@ Switch plugin for SquadJS.
     "doubleSwitchCommands": [ "!bug", "!stuck", "!doubleswitch" ],
     "doubleSwitchCooldownHours": 0.5,
     "doubleSwitchEnabledMinutes": 5,
-    "maxUnbalancedSlots": 5
+    "maxUnbalancedSlots": 5,
+    "switchToOldTeamAfterRejoin": false
 }
 ```
