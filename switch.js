@@ -50,13 +50,23 @@ export default class Switch extends DiscordBasePlugin {
             },
             switchEnabledMinutes: {
                 required: false,
-                description: "Time in seconds in which the switch will be enabled after match start or player join",
+                description: "Time in minutes in which the switch will be enabled after match start or player join",
                 default: 5
             },
             doubleSwitchEnabledMinutes: {
                 required: false,
-                description: "Time in seconds in which the switch will be enabled after match start or player join",
+                description: "Time in minutes in which the switch will be enabled after match start or player join",
                 default: 5
+            },
+            maxUnbalancedSlots: {
+                required: false,
+                description: "Number of player of difference between the two teams to allow a team switch",
+                default: 5
+            },
+            switchToOldTeamAfterRejoin: {
+                required: false,
+                description: "The team of a disconnecting player will be stored and after a new connection, the player will be switched to his old team",
+                default: false
             }
         };
     }
@@ -76,11 +86,15 @@ export default class Switch extends DiscordBasePlugin {
         this.switchSquad = this.switchSquad.bind(this);
         this.getSecondsFromJoin = this.getSecondsFromJoin.bind(this);
         this.getSecondsFromMatchStart = this.getSecondsFromMatchStart.bind(this);
+        this.getTeamBalanceDifference = this.getTeamBalanceDifference.bind(this);
+        this.switchToPreDisconnectionTeam = this.switchToPreDisconnectionTeam.bind(this);
+        this.getSwitchSlotsPerTeam = this.getSwitchSlotsPerTeam.bind(this);
 
         this.playersConnectionTime = [];
         this.matchEndSwitch = new Array(this.options.endMatchSwitchSlots > 0 ? this.options.endMatchSwitchSlots : 0);
         this.recentSwitches = [];
         this.recentDoubleSwitches = [];
+        this.recentDisconnetions = [];
 
         this.broadcast = (msg) => { this.server.rcon.broadcast(msg); };
         this.warn = (steamid, msg) => { this.server.rcon.warn(steamid, msg); };
@@ -93,7 +107,7 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onChatMessage(info) {
-        const { steamID, name: playerName } = info;
+        const { steamID, name: playerName, teamID } = info.player;
         const message = info.message.toLowerCase();
 
         this.verbose(1, `${playerName}:\n > Connection: ${this.getSecondsFromJoin(steamID)}\n > Match Start: ${this.getSecondsFromMatchStart()}`)
@@ -145,6 +159,8 @@ export default class Switch extends DiscordBasePlugin {
             }
         } else {
             this.verbose(1, playerName, 'requested a switch')
+            this.verbose(1, `Team (${teamID}) balance difference: ${this.getSwitchSlotsPerTeam(teamID)}`)
+
             const recentSwitch = this.recentSwitches.find(e => e.steamID == steamID);
             const cooldownHoursLeft = (+recentSwitch?.datetime - +(new Date())) / (60 * 60 * 1000);
 
@@ -158,6 +174,11 @@ export default class Switch extends DiscordBasePlugin {
                 return;
             }
 
+            if (this.getSwitchSlotsPerTeam(teamID) <= 0) {
+                this.warn(steamID, `Cannot switch now. Team are too unbalanced`);
+                return;
+            }
+
             if (recentSwitch)
                 recentSwitch.datetime = new Date();
             else
@@ -165,6 +186,19 @@ export default class Switch extends DiscordBasePlugin {
 
             this.switchPlayer(steamID)
         }
+    }
+
+    getTeamBalanceDifference() {
+        let teamPlayerCount = [ null, 0, 0 ];
+        for (let p of this.server.players)
+            teamPlayerCount[ +p.teamID ]++;
+
+        return teamPlayerCount[ 1 ] - teamPlayerCount[ 2 ];
+    }
+
+    getSwitchSlotsPerTeam(teamID) {
+        const balanceDifference = this.getTeamBalanceDifference();
+        return (this.options.maxUnbalancedSlots + 1) - (teamID == 1 ? balanceDifference : -balanceDifference);
     }
 
     getSecondsFromJoin(steamID) {
@@ -175,17 +209,31 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onPlayerConnected(info) {
-        const { steamID, name: playerName } = info.player;
+        const { steamID, name: playerName, teamID } = info.player;
         this.verbose(1, `Player connected ${playerName}`, info)
 
         this.playersConnectionTime[ steamID ] = new Date()
+        this.switchToPreDisconnectionTeam(info);
     }
 
     async onPlayerDisconnected(info) {
-        const { steamID, name: playerName } = info.player;
+        const { steamID, name: playerName, teamID } = info.player;
 
-        this.recentSwitches = this.recentSwitches.filter(p => p.steamID != steamID);
+        // this.recentSwitches = this.recentSwitches.filter(p => p.steamID != steamID);
+        this.recentDisconnetions[ steamID ] = { teamID: teamID, time: new Date() }
         this.recentDoubleSwitches = this.recentDoubleSwitches.filter(p => p.steamID != steamID);
+    }
+
+    async switchToPreDisconnectionTeam(info) {
+        if (!this.options.switchToOldTeamAfterRejoin) return;
+
+        const { steamID, name: playerName, teamID } = info.player;
+        const preDisconnectionData = this.recentDisconnetions[ steamID ];
+        if (!preDisconnectionData) return;
+
+        if (teamID != preDisconnectionData.teamID) {
+            await this.switchPlayer(steamID);
+        }
     }
 
     doubleSwitchPlayer(steamID) {
