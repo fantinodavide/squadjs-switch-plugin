@@ -244,7 +244,9 @@ export default class Switch extends DiscordBasePlugin {
         if (Date.now() - preDisconnectionData.time > 60 * 60 * 1000) return;
 
         if (needSwitch) {
-            await this.switchPlayer(steamID);
+            setTimeout(()=>{
+                this.switchPlayer(steamID);
+            },5000)
         }
     }
 
