@@ -89,6 +89,7 @@ export default class Switch extends DiscordBasePlugin {
         this.getTeamBalanceDifference = this.getTeamBalanceDifference.bind(this);
         this.switchToPreDisconnectionTeam = this.switchToPreDisconnectionTeam.bind(this);
         this.getSwitchSlotsPerTeam = this.getSwitchSlotsPerTeam.bind(this);
+        this.onRoundEnded = this.onRoundEnded.bind(this);
 
         this.playersConnectionTime = [];
         this.matchEndSwitch = new Array(this.options.endMatchSwitchSlots > 0 ? this.options.endMatchSwitchSlots : 0);
@@ -104,6 +105,7 @@ export default class Switch extends DiscordBasePlugin {
         this.server.on('CHAT_MESSAGE', this.onChatMessage);
         this.server.on('PLAYER_DISCONNECTED', this.onPlayerDisconnected);
         this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
+        this.server.on('ROUND_ENDED', this.onRoundEnded)
     }
 
     async onChatMessage(info) {
@@ -188,6 +190,11 @@ export default class Switch extends DiscordBasePlugin {
         }
     }
 
+    async onRoundEnded(dt) {
+        for (let p of this.server.players)
+            p.teamID = p.teamID == 1 ? 2 : 1
+    }
+
     getTeamBalanceDifference() {
         let teamPlayerCount = [ null, 0, 0 ];
         for (let p of this.server.players)
@@ -210,7 +217,7 @@ export default class Switch extends DiscordBasePlugin {
 
     async onPlayerConnected(info) {
         const { steamID, name: playerName, teamID } = info.player;
-        this.verbose(1, `Player connected ${playerName}`, info)
+        this.verbose(1, `Player connected ${playerName}`)
 
         this.playersConnectionTime[ steamID ] = new Date()
         this.switchToPreDisconnectionTeam(info);
@@ -231,7 +238,12 @@ export default class Switch extends DiscordBasePlugin {
         const preDisconnectionData = this.recentDisconnetions[ steamID ];
         if (!preDisconnectionData) return;
 
-        if (teamID != preDisconnectionData.teamID) {
+        const needSwitch = teamID != preDisconnectionData.teamID;
+        this.verbose(1, `${playerName}: Switching to old team: ${needSwitch}`)
+
+        if (Date.now() - preDisconnectionData.time > 60 * 60 * 1000) return;
+
+        if (needSwitch) {
             await this.switchPlayer(steamID);
         }
     }
