@@ -129,11 +129,17 @@ export default class Switch extends DiscordBasePlugin {
 
         const isAdmin = info.chat === "ChatAdmin";
         if (subCommand) {
+            let pl;
             switch (subCommand) {
                 case 'now':
                     if (!isAdmin) return;
-                    const pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit[ 1 ])
+                    pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit[ 1 ])
                     if (pl) this.switchPlayer(pl.steamID)
+                    break;
+                case 'double':
+                    if (!isAdmin) return;
+                    pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit[ 1 ])
+                    if (pl) this.doubleSwitchPlayer(pl.steamID, true)
                     break;
                 case 'squad':
                     if (!isAdmin) return;
@@ -156,7 +162,7 @@ export default class Switch extends DiscordBasePlugin {
                     this.warn(steamID, msg);
                     break;
                 default:
-                    await this.warn(steamID, `Unknown vote subcommand: ${subCommand}`);
+                    await this.warn(steamID, `Unknown subcommand: ${subCommand}`);
                     return;
             }
         } else {
@@ -244,31 +250,32 @@ export default class Switch extends DiscordBasePlugin {
         if (Date.now() - preDisconnectionData.time > 60 * 60 * 1000) return;
 
         if (needSwitch) {
-            setTimeout(()=>{
+            setTimeout(() => {
                 this.switchPlayer(steamID);
-            },5000)
+            }, 5000)
         }
     }
 
-    doubleSwitchPlayer(steamID) {
+    doubleSwitchPlayer(steamID, forced = false) {
         const recentSwitch = this.recentDoubleSwitches.find(e => e.steamID == steamID);
         const cooldownHoursLeft = (+recentSwitch?.datetime - +(new Date())) / (60 * 60 * 1000);
 
-        if (this.getSecondsFromJoin(steamID) / 60 > this.options.doubleSwitchEnabledMinutes && this.getSecondsFromMatchStart() / 60 > this.options.doubleSwitchEnabledMinutes) {
-            this.warn(steamID, `A double switch can be requested only in the first ${this.options.doubleSwitchEnabledMinutes} mintues from match start or connection to the server`);
-            return;
+        if (!forced) {
+            if (this.getSecondsFromJoin(steamID) / 60 > this.options.doubleSwitchEnabledMinutes && this.getSecondsFromMatchStart() / 60 > this.options.doubleSwitchEnabledMinutes) {
+                this.warn(steamID, `A double switch can be requested only in the first ${this.options.doubleSwitchEnabledMinutes} mintues from match start or connection to the server`);
+                return;
+            }
+
+            if (recentSwitch && cooldownHoursLeft < this.options.doubleSwitchCooldownHours) {
+                this.warn(steamID, `You have already requested a double switch in the last ${this.options.doubleSwitchCooldownHours} hours`);
+                return;
+            }
+
+            if (recentSwitch)
+                recentSwitch.datetime = new Date();
+            else
+                this.recentDoubleSwitches.push({ steamID: steamID, datetime: new Date() })
         }
-
-        if (recentSwitch && cooldownHoursLeft < this.options.doubleSwitchCooldownHours) {
-            this.warn(steamID, `You have already requested a double switch in the last ${this.options.doubleSwitchCooldownHours} hours`);
-            return;
-        }
-
-        if (recentSwitch)
-            recentSwitch.datetime = new Date();
-        else
-            this.recentDoubleSwitches.push({ steamID: steamID, datetime: new Date() })
-
 
         this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
         setTimeout(() => {
