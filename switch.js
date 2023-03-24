@@ -61,7 +61,7 @@ export default class Switch extends DiscordBasePlugin {
             maxUnbalancedSlots: {
                 required: false,
                 description: "Number of player of difference between the two teams to allow a team switch",
-                default: 5
+                default: 3
             },
             switchToOldTeamAfterRejoin: {
                 required: false,
@@ -106,6 +106,8 @@ export default class Switch extends DiscordBasePlugin {
         this.server.on('PLAYER_DISCONNECTED', this.onPlayerDisconnected);
         this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
         this.server.on('ROUND_ENDED', this.onRoundEnded)
+
+        // setInterval(this.getTeamBalanceDifference,5000)
     }
 
     async onChatMessage(info) {
@@ -166,6 +168,8 @@ export default class Switch extends DiscordBasePlugin {
                     return;
             }
         } else {
+            await this.server.updateSquadList();
+            await this.server.updatePlayerList();
             this.verbose(1, playerName, 'requested a switch')
             this.verbose(1, `Team (${teamID}) balance difference: ${this.getSwitchSlotsPerTeam(teamID)}`)
 
@@ -205,13 +209,15 @@ export default class Switch extends DiscordBasePlugin {
         let teamPlayerCount = [ null, 0, 0 ];
         for (let p of this.server.players)
             teamPlayerCount[ +p.teamID ]++;
+        const balanceDiff = teamPlayerCount[ 1 ] - teamPlayerCount[ 2 ];
 
-        return teamPlayerCount[ 1 ] - teamPlayerCount[ 2 ];
+        this.verbose(1, `Balance diff: ${balanceDiff}`, teamPlayerCount)
+        return balanceDiff;
     }
 
     getSwitchSlotsPerTeam(teamID) {
         const balanceDifference = this.getTeamBalanceDifference();
-        return (this.options.maxUnbalancedSlots + 1) - (teamID == 1 ? balanceDifference : -balanceDifference);
+        return (this.options.maxUnbalancedSlots) - (teamID == 1 ? balanceDifference : -balanceDifference);
     }
 
     getSecondsFromJoin(steamID) {
