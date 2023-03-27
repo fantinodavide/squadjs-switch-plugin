@@ -149,6 +149,16 @@ export default class Switch extends DiscordBasePlugin {
                     await this.server.updatePlayerList();
                     await this.switchSquad(+commandSplit[ 1 ], commandSplit[ 2 ])
                     break;
+                case 'refresh':
+                    await this.server.updateSquadList();
+                    await this.server.updatePlayerList();
+                    this.warn(steamID, `Players and squads refreshed`)
+                    break;
+                case 'slots':
+                    await this.server.updateSquadList();
+                    await this.server.updatePlayerList();
+                    this.warn(steamID, `Switch slots per team:\n 1) ${this.getSwitchSlotsPerTeam(1)}\n 2) ${this.getSwitchSlotsPerTeam(2)}`)
+                    break;
                 case "matchend":
                     // const switchData = {
                     //     from: +info.player.teamID,
@@ -170,8 +180,9 @@ export default class Switch extends DiscordBasePlugin {
         } else {
             await this.server.updateSquadList();
             await this.server.updatePlayerList();
+            const availableSwitchSlots = this.getSwitchSlotsPerTeam(teamID);
             this.verbose(1, playerName, 'requested a switch')
-            this.verbose(1, `Team (${teamID}) balance difference: ${this.getSwitchSlotsPerTeam(teamID)}`)
+            this.verbose(1, `Team (${teamID}) balance difference:`, availableSwitchSlots)
 
             const recentSwitch = this.recentSwitches.find(e => e.steamID == steamID);
             const cooldownHoursLeft = (+recentSwitch?.datetime - +(new Date())) / (60 * 60 * 1000);
@@ -186,7 +197,7 @@ export default class Switch extends DiscordBasePlugin {
                 return;
             }
 
-            if (this.getSwitchSlotsPerTeam(teamID) <= 0) {
+            if (availableSwitchSlots <= 0) {
                 this.warn(steamID, `Cannot switch now. Team are too unbalanced`);
                 return;
             }
@@ -217,7 +228,7 @@ export default class Switch extends DiscordBasePlugin {
 
     getSwitchSlotsPerTeam(teamID) {
         const balanceDifference = this.getTeamBalanceDifference();
-        return (this.options.maxUnbalancedSlots) - (teamID == 1 ? balanceDifference : -balanceDifference);
+        return (this.options.maxUnbalancedSlots) - (teamID == 1 ? -balanceDifference : balanceDifference);
     }
 
     getSecondsFromJoin(steamID) {
