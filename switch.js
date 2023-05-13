@@ -1,4 +1,7 @@
+import Sequelize, { NOW } from 'sequelize';
 import DiscordBasePlugin from './discord-base-plugin.js';
+import { setTimeout as delay } from "timers/promises";
+const { DataTypes } = Sequelize;
 
 export default class Switch extends DiscordBasePlugin {
     static get description() {
@@ -67,7 +70,13 @@ export default class Switch extends DiscordBasePlugin {
                 required: false,
                 description: "The team of a disconnecting player will be stored and after a new connection, the player will be switched to his old team",
                 default: false
-            }
+            },
+            database: {
+                required: true,
+                connector: 'sequelize',
+                description: 'The Sequelize connector to log server information to.',
+                default: 'sqlite'
+            },
         };
     }
 
@@ -90,12 +99,35 @@ export default class Switch extends DiscordBasePlugin {
         this.switchToPreDisconnectionTeam = this.switchToPreDisconnectionTeam.bind(this);
         this.getSwitchSlotsPerTeam = this.getSwitchSlotsPerTeam.bind(this);
         this.onRoundEnded = this.onRoundEnded.bind(this);
+        this.addPlayerToMatchendSwitches = this.addPlayerToMatchendSwitches.bind(this);
+        this.doSwitcMatchend = this.doSwitcMatchend.bind(this);
 
         this.playersConnectionTime = [];
         this.matchEndSwitch = new Array(this.options.endMatchSwitchSlots > 0 ? this.options.endMatchSwitchSlots : 0);
         this.recentSwitches = [];
         this.recentDoubleSwitches = [];
         this.recentDisconnetions = [];
+
+        this.models = {};
+
+        this.createModel('Endmatch', {
+            id: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                autoIncrement: true
+            },
+            name: {
+                type: DataTypes.STRING
+            },
+            steamID: {
+                type: DataTypes.STRING
+            },
+            created_at: {
+                type: DataTypes.DATE,
+                defaultValue: DataTypes.NOW
+            }
+        });
+
 
         this.broadcast = (msg) => { this.server.rcon.broadcast(msg); };
         this.warn = (steamid, msg) => { this.server.rcon.warn(steamid, msg); };
@@ -108,6 +140,16 @@ export default class Switch extends DiscordBasePlugin {
         this.server.on('ROUND_ENDED', this.onRoundEnded)
 
         // setInterval(this.getTeamBalanceDifference,5000)
+    }
+
+    async prepareToMount() {
+        await this.models.Endmatch.sync();
+    }
+
+    createModel(name, schema) {
+        this.models[ name ] = this.options.database.define(`SwitchPlugin_${name}`, schema, {
+            timestamps: false
+        });
     }
 
     async onChatMessage(info) {
@@ -135,12 +177,12 @@ export default class Switch extends DiscordBasePlugin {
             switch (subCommand) {
                 case 'now':
                     if (!isAdmin) return;
-                    pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit[ 1 ])
+                    pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit.splice(1).join(' '))
                     if (pl) this.switchPlayer(pl.steamID)
                     break;
                 case 'double':
                     if (!isAdmin) return;
-                    pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit[ 1 ])
+                    pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit.splice(1).join(' '))
                     if (pl) this.doubleSwitchPlayer(pl.steamID, true)
                     break;
                 case 'squad':
@@ -160,6 +202,8 @@ export default class Switch extends DiscordBasePlugin {
                     this.warn(steamID, `Switch slots per team:\n 1) ${this.getSwitchSlotsPerTeam(1)}\n 2) ${this.getSwitchSlotsPerTeam(2)}`)
                     break;
                 case "matchend":
+                    if (!isAdmin) return;
+                    await this.server.updatePlayerList();
                     // const switchData = {
                     //     from: +info.player.teamID,
                     //     to: [ 1, 2 ].find(i => i != +info.player.teamID)
@@ -168,9 +212,32 @@ export default class Switch extends DiscordBasePlugin {
                     // if (matchEndSwitch.filter(s => s.to == switchData.to)) {
                     //     this.matchEndSwitch[ steamID.toString() ] = 
                     // }
+                    pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit.splice(1).join(' '))
+                    this.warn(steamID, `Player ${pl.name} will be switched at the end of the current match`);
+                    this.addPlayerToMatchendSwitches(pl)
+                    break;
+                case "matchendsquad":
+                    if (!isAdmin) return;
+                    await this.server.updateSquadList();
+                    await this.server.updatePlayerList();
+                    this.warn(steamID, `Squad ${commandSplit[ 1 ]} ${commandSplit[ 2 ]} will be switched at the end of the current match`);
+                    await this.addSquadToMatchendSwitches(+commandSplit[ 1 ], commandSplit[ 2 ])
+                    break;
+                case "triggermatchend":
+                    this.warn(steamID, 'Switch: Triggering matchend for testing purposes');
+                    await this.doSwitcMatchend();
+                    this.warn(steamID, 'Switch: Done');
+                    break;
+                case "test":
+                    this.warn(steamID, 'Test 1')
+                    await delay(2000);
+                    this.warn(steamID, 'Test 2')
+                    setTimeout(() => {
+                        this.warn(steamID, 'Test 3')
+                    }, 2000)
                     break;
                 case "help":
-                    let msg = `${this.options.commandPrefix}\n > now {username|steamID}\n > squad {squad_number} {teamID|teamString}`;
+                    let msg = `${this.options.commandPrefix}\n > now {username|steamID}\n > double {username|steamID}\n > matchend {username|steamID}\n > squad {squad_number} {teamID|teamString}\n > matchendsquad {squad_number} {teamID|teamString}`;
                     this.warn(steamID, msg);
                     break;
                 default:
@@ -211,7 +278,26 @@ export default class Switch extends DiscordBasePlugin {
         }
     }
 
+    async doSwitcMatchend() {
+        const players = await this.models.Endmatch.findAll();
+        if (players.length == 0) return;
+        players.forEach((pl) => {
+            this.warn(pl.steamID, 'You will be switched in 15 seconds');
+        })
+        await delay(15 * 1000)
+        await Promise.all(players.map(async (pl) => {
+            this.switchPlayer(pl.steamID);
+            return await this.models.Endmatch.destroy({
+                where: {
+                    id: pl.id
+                }
+            })
+        }))
+    }
+
     async onRoundEnded(dt) {
+        this.doSwitcMatchend();
+
         for (let p of this.server.players)
             p.teamID = p.teamID == 1 ? 2 : 1
     }
@@ -273,7 +359,7 @@ export default class Switch extends DiscordBasePlugin {
         }
     }
 
-    doubleSwitchPlayer(steamID, forced = false) {
+    async doubleSwitchPlayer(steamID, forced = false, senderSteamID) {
         const recentSwitch = this.recentDoubleSwitches.find(e => e.steamID == steamID);
         const cooldownHoursLeft = (+recentSwitch?.datetime - +(new Date())) / (60 * 60 * 1000);
 
@@ -294,16 +380,22 @@ export default class Switch extends DiscordBasePlugin {
                 this.recentDoubleSwitches.push({ steamID: steamID, datetime: new Date() })
         }
 
-        this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
-        setTimeout(() => {
-            this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
-        }, this.options.doubleSwitchDelaySeconds)
+        await this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
+        await delay(this.options.doubleSwitchDelaySeconds * 1000)
+        await this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
+
+        if (forced && senderSteamID) this.warn(senderSteamID, `Player has been doble-switched`)
     }
 
     switchSquad(number, team) {
-        let team_id = null;
+        const players = this.getPlayersFromSquad(number, team);
+        if (!players) return;
+        for (let p of players)
+            this.switchPlayer(p.steamID)
+    }
 
-        // this.verbose(1, 'Layer', this.server.currentLayer.teams)
+    getPlayersFromSquad(number, team) {
+        let team_id = null;
 
         if (+team >= 0) team_id = +team;
         else team_id = this.getFactionId(team);
@@ -312,11 +404,25 @@ export default class Switch extends DiscordBasePlugin {
             this.verbose(1, "Could not find a faction from:", team);
             return;
         }
+        return this.server.players.filter((p) => p.teamID == team_id && p.squadID == number)
+    }
 
-        // this.verbose(1, `Switching squad ${number}, team ${team_id}`);
+    async addSquadToMatchendSwitches(number, team) {
+        const players = this.getPlayersFromSquad(number, team);
+        if (!players) return;
+        for (let p of players) {
+            await this.models.Endmatch.create({
+                name: p.name,
+                steamID: p.steamID,
+            });
+        }
+    }
 
-        for (let p of this.server.players.filter((p) => p.teamID == team_id && p.squadID == number))
-            this.switchPlayer(p.steamID)
+    async addPlayerToMatchendSwitches(player) {
+        await this.models.Endmatch.create({
+            name: player.name,
+            steamID: player.steamID,
+        });
     }
 
     getFactionId(team) {
@@ -371,11 +477,11 @@ export default class Switch extends DiscordBasePlugin {
 
         ret = this.getPlayersByUsername(ident);
         if (ret.length == 0) {
-            this.warn(steamID, `Could not find a player whose username includes: "${ident[ 1 ]}"`)
+            this.warn(steamID, `Could not find a player whose username includes: "${ident}"`)
             return;
         }
         if (ret.length > 1) {
-            this.warn(steamID, `Found multiple players whose usernames include: "${ident[ 1 ]}"`)
+            this.warn(steamID, `Found multiple players whose usernames include: "${ident}"`)
             return;
         }
 
