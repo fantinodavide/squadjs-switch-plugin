@@ -216,6 +216,11 @@ export default class Switch extends DiscordBasePlugin {
                     this.warn(steamID, `Player ${pl.name} will be switched at the end of the current match`);
                     this.addPlayerToMatchendSwitches(pl)
                     break;
+                case "doublesquad":
+                    await this.server.updateSquadList();
+                    await this.server.updatePlayerList();
+                    this.doubleSwitchSquad(+commandSplit[ 1 ], commandSplit[ 2 ])
+                    break;
                 case "matchendsquad":
                     if (!isAdmin) return;
                     await this.server.updateSquadList();
@@ -237,7 +242,7 @@ export default class Switch extends DiscordBasePlugin {
                     }, 2000)
                     break;
                 case "help":
-                    let msg = `${this.options.commandPrefix}\n > now {username|steamID}\n > double {username|steamID}\n > matchend {username|steamID}\n > squad {squad_number} {teamID|teamString}\n > matchendsquad {squad_number} {teamID|teamString}`;
+                    let msg = `${this.options.commandPrefix}\n > now {username|steamID}\n > double {username|steamID}\n > matchend {username|steamID}\n > squad {squad_number} {teamID|teamString}\n > doublesquad {squad_number} {teamID|teamString}\n > matchendsquad {squad_number} {teamID|teamString}`;
                     this.warn(steamID, msg);
                     break;
                 default:
@@ -405,6 +410,14 @@ export default class Switch extends DiscordBasePlugin {
             return;
         }
         return this.server.players.filter((p) => p.teamID == team_id && p.squadID == number)
+    }
+
+    async doubleSwitchSquad(number, team) {
+        const players = this.getPlayersFromSquad(number, team);
+        if (!players) return;
+        for (let p of players) this.switchPlayer(p.steamID);
+        await delay(this.options.doubleSwitchDelaySeconds * 1000)
+        for (let p of players) this.switchPlayer(p.steamID);
     }
 
     async addSquadToMatchendSwitches(number, team) {
