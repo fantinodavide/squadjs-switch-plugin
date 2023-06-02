@@ -29,6 +29,7 @@ Switch plugin for SquadJS.
     "doubleSwitchCooldownHours": 0.5,
     "doubleSwitchEnabledMinutes": 5,
     "maxUnbalancedSlots": 5,
-    "switchToOldTeamAfterRejoin": false
+    "switchToOldTeamAfterRejoin": false,
+    "database": "sqlite"
 }
 ```
