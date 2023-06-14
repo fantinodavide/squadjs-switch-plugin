@@ -217,6 +217,7 @@ export default class Switch extends DiscordBasePlugin {
                     this.addPlayerToMatchendSwitches(pl)
                     break;
                 case "doublesquad":
+                    if (!isAdmin) return;
                     await this.server.updateSquadList();
                     await this.server.updatePlayerList();
                     this.doubleSwitchSquad(+commandSplit[ 1 ], commandSplit[ 2 ])
@@ -229,6 +230,7 @@ export default class Switch extends DiscordBasePlugin {
                     await this.addSquadToMatchendSwitches(+commandSplit[ 1 ], commandSplit[ 2 ])
                     break;
                 case "triggermatchend":
+                    if (!isAdmin) return;
                     this.warn(steamID, 'Switch: Triggering matchend for testing purposes');
                     await this.doSwitchMatchend();
                     this.warn(steamID, 'Switch: Done');
