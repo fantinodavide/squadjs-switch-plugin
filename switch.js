@@ -202,7 +202,7 @@ export default class Switch extends DiscordBasePlugin {
                     this.warn(steamID, `Switch slots per team:\n 1) ${this.getSwitchSlotsPerTeam(1)}\n 2) ${this.getSwitchSlotsPerTeam(2)}`)
                     break;
                 case "matchend":
-                    if (!isAdmin) return;
+                    pl = isAdmin ? this.getPlayerByUsernameOrSteamID(steamID, commandSplit.splice(1).join(' ')) : pl = this.getPlayerBySteamID(steamID);
                     await this.server.updatePlayerList();
                     // const switchData = {
                     //     from: +info.player.teamID,
