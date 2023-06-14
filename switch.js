@@ -257,15 +257,18 @@ export default class Switch extends DiscordBasePlugin {
             this.verbose(1, `Team (${teamID}) balance difference:`, availableSwitchSlots)
 
             const recentSwitch = this.recentSwitches.find(e => e.steamID == steamID);
-            const cooldownHoursLeft = (+recentSwitch?.datetime - +(new Date())) / (60 * 60 * 1000);
+            const cooldownHoursPassed = (Date.now() - +recentSwitch?.datetime) / (60 * 60 * 1000);
 
             if (this.getSecondsFromJoin(steamID) / 60 > this.options.switchEnabledMinutes && this.getSecondsFromMatchStart() / 60 > this.options.switchEnabledMinutes) {
                 this.warn(steamID, `A switch can be requested only in the first ${this.options.doubleSwitchEnabledMinutes} minutes from match start or connection to the server`);
                 return;
             }
 
-            if (recentSwitch && cooldownHoursLeft < this.options.switchCooldownHours) {
-                this.warn(steamID, `You have already used a switch in the last ${this.options.switchCooldownHours} hours`);
+            if (recentSwitch && cooldownHoursPassed < this.options.switchCooldownHours) {
+                const cooldownHoursLeft = this.options.switchCooldownHours - cooldownHoursPassed;
+                const cooldownMinutesLeft = Math.round(cooldownHoursLeft * 60);
+                const cooldownTimeLeft = cooldownHoursLeft >= 1 ? `${cooldownHoursLeft} hours` : `${cooldownMinutesLeft} minutes`;
+                this.warn(steamID, `You can switch again after ${cooldownTimeLeft}`);
                 return;
             }
 
@@ -366,7 +369,7 @@ export default class Switch extends DiscordBasePlugin {
 
     async doubleSwitchPlayer(steamID, forced = false, senderSteamID) {
         const recentSwitch = this.recentDoubleSwitches.find(e => e.steamID == steamID);
-        const cooldownHoursLeft = (+recentSwitch?.datetime - +(new Date())) / (60 * 60 * 1000);
+        const cooldownHoursPassed = (Date.now() - +recentSwitch?.datetime) / (60 * 60 * 1000);
 
         if (!forced) {
             if (this.getSecondsFromJoin(steamID) / 60 > this.options.doubleSwitchEnabledMinutes && this.getSecondsFromMatchStart() / 60 > this.options.doubleSwitchEnabledMinutes) {
@@ -374,9 +377,12 @@ export default class Switch extends DiscordBasePlugin {
                 return;
             }
 
-            if (recentSwitch && cooldownHoursLeft < this.options.doubleSwitchCooldownHours) {
-                this.warn(steamID, `You have already requested a double switch in the last ${this.options.doubleSwitchCooldownHours} hours`);
-                return;
+            if (recentSwitch && cooldownHoursPassed < this.options.doubleSwitchCooldownHours) {
+                const cooldownHoursLeft = this.options.doubleSwitchCooldownHours - cooldownHoursPassed;
+                const cooldownMinutesLeft = Math.round(cooldownHoursLeft * 60);
+                const cooldownTimeLeft = cooldownHoursLeft >= 1 ? `${cooldownHoursLeft} hours` : `${cooldownMinutesLeft} minutes`;
+                this.warn(steamID, `You can double switch again after ${cooldownTimeLeft}`);
+                return;    
             }
 
             if (recentSwitch)
