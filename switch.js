@@ -335,7 +335,8 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onPlayerConnected(info) {
-        const { steamID, name: playerName, teamID } = info.player;
+        const steamID = info.steamID;
+        const playerName = info.player?.name;
         this.verbose(1, `Player connected ${playerName}`)
 
         this.playersConnectionTime[ steamID ] = new Date()
@@ -343,7 +344,8 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onPlayerDisconnected(info) {
-        const { steamID, name: playerName, teamID } = info.player;
+        const steamID = info.steamID;
+        const teamID = info.player?.teamID;
 
         // this.recentSwitches = this.recentSwitches.filter(p => p.steamID != steamID);
         this.recentDisconnections[ steamID ] = { teamID: teamID, time: new Date() }
@@ -353,7 +355,12 @@ export default class Switch extends DiscordBasePlugin {
     async switchToPreDisconnectionTeam(info) {
         if (!this.options.switchToOldTeamAfterRejoin) return;
 
-        const { steamID, name: playerName, teamID } = info.player;
+        const steamID = info.steamID;
+
+        if (!info.player) return;
+        const playerName = info.player?.name;
+        const teamID = info.player?.teamID;
+
         const preDisconnectionData = this.recentDisconnections[ steamID ];
         if (!preDisconnectionData) return;
 
