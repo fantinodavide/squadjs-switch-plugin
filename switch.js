@@ -22,7 +22,7 @@ export default class Switch extends DiscordBasePlugin {
             },
             // duringMatchSwitchSlots: {
             //     required: true,
-            //     description: "Number of switch slots, if one is free a player will instanlty get a switch",
+            //     description: "Number of switch slots, if one is free a player will instantly get a switch",
             //     default: 2
             // },
             doubleSwitchCommands: {
@@ -100,13 +100,13 @@ export default class Switch extends DiscordBasePlugin {
         this.getSwitchSlotsPerTeam = this.getSwitchSlotsPerTeam.bind(this);
         this.onRoundEnded = this.onRoundEnded.bind(this);
         this.addPlayerToMatchendSwitches = this.addPlayerToMatchendSwitches.bind(this);
-        this.doSwitcMatchend = this.doSwitcMatchend.bind(this);
+        this.doSwitchMatchend = this.doSwitchMatchend.bind(this);
 
         this.playersConnectionTime = [];
         this.matchEndSwitch = new Array(this.options.endMatchSwitchSlots > 0 ? this.options.endMatchSwitchSlots : 0);
         this.recentSwitches = [];
         this.recentDoubleSwitches = [];
-        this.recentDisconnetions = [];
+        this.recentDisconnections = [];
 
         this.models = {};
 
@@ -230,7 +230,7 @@ export default class Switch extends DiscordBasePlugin {
                     break;
                 case "triggermatchend":
                     this.warn(steamID, 'Switch: Triggering matchend for testing purposes');
-                    await this.doSwitcMatchend();
+                    await this.doSwitchMatchend();
                     this.warn(steamID, 'Switch: Done');
                     break;
                 case "test":
@@ -260,7 +260,7 @@ export default class Switch extends DiscordBasePlugin {
             const cooldownHoursLeft = (+recentSwitch?.datetime - +(new Date())) / (60 * 60 * 1000);
 
             if (this.getSecondsFromJoin(steamID) / 60 > this.options.switchEnabledMinutes && this.getSecondsFromMatchStart() / 60 > this.options.switchEnabledMinutes) {
-                this.warn(steamID, `A switch can be requested only in the first ${this.options.doubleSwitchEnabledMinutes} mintues from match start or connection to the server`);
+                this.warn(steamID, `A switch can be requested only in the first ${this.options.doubleSwitchEnabledMinutes} minutes from match start or connection to the server`);
                 return;
             }
 
@@ -283,7 +283,7 @@ export default class Switch extends DiscordBasePlugin {
         }
     }
 
-    async doSwitcMatchend() {
+    async doSwitchMatchend() {
         const players = await this.models.Endmatch.findAll();
         if (players.length == 0) return;
         players.forEach((pl) => {
@@ -301,7 +301,7 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onRoundEnded(dt) {
-        this.doSwitcMatchend();
+        this.doSwitchMatchend();
 
         for (let p of this.server.players)
             p.teamID = p.teamID == 1 ? 2 : 1
@@ -341,7 +341,7 @@ export default class Switch extends DiscordBasePlugin {
         const { steamID, name: playerName, teamID } = info.player;
 
         // this.recentSwitches = this.recentSwitches.filter(p => p.steamID != steamID);
-        this.recentDisconnetions[ steamID ] = { teamID: teamID, time: new Date() }
+        this.recentDisconnections[ steamID ] = { teamID: teamID, time: new Date() }
         this.recentDoubleSwitches = this.recentDoubleSwitches.filter(p => p.steamID != steamID);
     }
 
@@ -349,7 +349,7 @@ export default class Switch extends DiscordBasePlugin {
         if (!this.options.switchToOldTeamAfterRejoin) return;
 
         const { steamID, name: playerName, teamID } = info.player;
-        const preDisconnectionData = this.recentDisconnetions[ steamID ];
+        const preDisconnectionData = this.recentDisconnections[ steamID ];
         if (!preDisconnectionData) return;
 
         const needSwitch = teamID != preDisconnectionData.teamID;
@@ -370,7 +370,7 @@ export default class Switch extends DiscordBasePlugin {
 
         if (!forced) {
             if (this.getSecondsFromJoin(steamID) / 60 > this.options.doubleSwitchEnabledMinutes && this.getSecondsFromMatchStart() / 60 > this.options.doubleSwitchEnabledMinutes) {
-                this.warn(steamID, `A double switch can be requested only in the first ${this.options.doubleSwitchEnabledMinutes} mintues from match start or connection to the server`);
+                this.warn(steamID, `A double switch can be requested only in the first ${this.options.doubleSwitchEnabledMinutes} minutes from match start or connection to the server`);
                 return;
             }
 
@@ -389,7 +389,7 @@ export default class Switch extends DiscordBasePlugin {
         await delay(this.options.doubleSwitchDelaySeconds * 1000)
         await this.server.rcon.execute(`AdminForceTeamChange ${steamID}`);
 
-        if (forced && senderSteamID) this.warn(senderSteamID, `Player has been doble-switched`)
+        if (forced && senderSteamID) this.warn(senderSteamID, `Player has been double-switched`)
     }
 
     switchSquad(number, team) {
