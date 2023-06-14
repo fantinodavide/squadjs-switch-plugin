@@ -168,6 +168,7 @@ export default class Switch extends DiscordBasePlugin {
         this.verbose(1, 'Received command', message, commandPrefixInUse)
 
         const commandSplit = message.substring(commandPrefixInUse.length).trim().split(' ');
+        const playerParameter = commandSplit.splice(1).join(' ');
         const subCommand = commandSplit[ 0 ];
 
 
@@ -177,12 +178,12 @@ export default class Switch extends DiscordBasePlugin {
             switch (subCommand) {
                 case 'now':
                     if (!isAdmin) return;
-                    pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit.splice(1).join(' '))
+                    pl = this.getPlayerByUsernameOrSteamID(steamID, playerParameter)
                     if (pl) this.switchPlayer(pl.steamID)
                     break;
                 case 'double':
                     if (!isAdmin) return;
-                    pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit.splice(1).join(' '))
+                    pl = this.getPlayerByUsernameOrSteamID(steamID, playerParameter)
                     if (pl) this.doubleSwitchPlayer(pl.steamID, true)
                     break;
                 case 'squad':
@@ -202,7 +203,7 @@ export default class Switch extends DiscordBasePlugin {
                     this.warn(steamID, `Switch slots per team:\n 1) ${this.getSwitchSlotsPerTeam(1)}\n 2) ${this.getSwitchSlotsPerTeam(2)}`)
                     break;
                 case "matchend":
-                    pl = isAdmin ? this.getPlayerByUsernameOrSteamID(steamID, commandSplit.splice(1).join(' ')) : pl = this.getPlayerBySteamID(steamID);
+                    pl = isAdmin && playerParameter.length > 0 ? this.getPlayerByUsernameOrSteamID(steamID, playerParameter) : this.getPlayerBySteamID(steamID);
                     await this.server.updatePlayerList();
                     // const switchData = {
                     //     from: +info.player.teamID,
@@ -212,7 +213,7 @@ export default class Switch extends DiscordBasePlugin {
                     // if (matchEndSwitch.filter(s => s.to == switchData.to)) {
                     //     this.matchEndSwitch[ steamID.toString() ] = 
                     // }
-                    pl = this.getPlayerByUsernameOrSteamID(steamID, commandSplit.splice(1).join(' '))
+                    pl = this.getPlayerByUsernameOrSteamID(steamID, playerParameter)
                     this.warn(steamID, `Player ${pl.name} will be switched at the end of the current match`);
                     this.addPlayerToMatchendSwitches(pl)
                     break;
