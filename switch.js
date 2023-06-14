@@ -130,7 +130,7 @@ export default class Switch extends DiscordBasePlugin {
 
 
         this.broadcast = (msg) => { this.server.rcon.broadcast(msg); };
-        this.warn = (steamid, msg) => { this.server.rcon.warn(steamid, msg); };
+        this.warn = (steamid, msg) => { this.server.rcon.warn(steamid, msg); this.verbose(1, `Warned ${steamid}: "${msg}"`) };
     }
 
     async mount() {
@@ -242,7 +242,9 @@ export default class Switch extends DiscordBasePlugin {
                     }, 2000)
                     break;
                 case "help":
-                    let msg = `${this.options.commandPrefix}\n > now {username|steamID}\n > double {username|steamID}\n > matchend {username|steamID}\n > squad {squad_number} {teamID|teamString}\n > doublesquad {squad_number} {teamID|teamString}\n > matchendsquad {squad_number} {teamID|teamString}`;
+                    let msg = `${this.options.commandPrefix}\n\n > now {username|steamID}\n > double {username|steamID}\n > matchend {username|steamID}\n`;
+                    this.warn(steamID, msg);
+                    msg = `${this.options.commandPrefix}\n\n > squad {squad_number} {teamID|teamString}\n\n > doublesquad {squad_number} {teamID|teamString}\n > matchendsquad {squad_number} {teamID|teamString}`;
                     this.warn(steamID, msg);
                     break;
                 default:
