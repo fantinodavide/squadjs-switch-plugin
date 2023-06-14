@@ -271,7 +271,7 @@ export default class Switch extends DiscordBasePlugin {
             if (recentSwitch && cooldownHoursPassed < this.options.switchCooldownHours) {
                 const cooldownHoursLeft = this.options.switchCooldownHours - cooldownHoursPassed;
                 const cooldownMinutesLeft = Math.round(cooldownHoursLeft * 60);
-                const cooldownTimeLeft = cooldownHoursLeft >= 1 ? `${cooldownHoursLeft} hours` : `${cooldownMinutesLeft} minutes`;
+                const cooldownTimeLeft = cooldownHoursLeft >= 1 ? `${cooldownHoursLeft} hour(s)` : `${cooldownMinutesLeft} minute(s)`;
                 this.warn(steamID, `You can switch again after ${cooldownTimeLeft}`);
                 return;
             }
@@ -391,7 +391,7 @@ export default class Switch extends DiscordBasePlugin {
             if (recentSwitch && cooldownHoursPassed < this.options.doubleSwitchCooldownHours) {
                 const cooldownHoursLeft = this.options.doubleSwitchCooldownHours - cooldownHoursPassed;
                 const cooldownMinutesLeft = Math.round(cooldownHoursLeft * 60);
-                const cooldownTimeLeft = cooldownHoursLeft >= 1 ? `${cooldownHoursLeft} hours` : `${cooldownMinutesLeft} minutes`;
+                const cooldownTimeLeft = cooldownHoursLeft >= 1 ? `${cooldownHoursLeft} hour(s)` : `${cooldownMinutesLeft} minute(s)`;
                 this.warn(steamID, `You can double switch again after ${cooldownTimeLeft}`);
                 return;    
             }
