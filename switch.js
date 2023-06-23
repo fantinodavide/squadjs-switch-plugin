@@ -130,7 +130,7 @@ export default class Switch extends DiscordBasePlugin {
 
 
         this.broadcast = (msg) => { this.server.rcon.broadcast(msg); };
-        this.warn = (steamid, msg) => { this.server.rcon.warn(steamid, msg); };
+        this.warn = (steamid, msg) => { this.server.rcon.warn(steamid, msg) };
     }
 
     async mount() {
@@ -153,7 +153,9 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onChatMessage(info) {
-        const { steamID, name: playerName, teamID } = info.player;
+        const steamID = info.steamID;
+        const playerName = info.player?.name;
+        const teamID = info.player?.teamID;
         const message = info.message.toLowerCase();
 
         this.verbose(1, `${playerName}:\n > Connection: ${this.getSecondsFromJoin(steamID)}\n > Match Start: ${this.getSecondsFromMatchStart()}`)
@@ -217,6 +219,7 @@ export default class Switch extends DiscordBasePlugin {
                     this.addPlayerToMatchendSwitches(pl)
                     break;
                 case "doublesquad":
+                    if (!isAdmin) return;
                     await this.server.updateSquadList();
                     await this.server.updatePlayerList();
                     this.doubleSwitchSquad(+commandSplit[ 1 ], commandSplit[ 2 ])
@@ -229,6 +232,7 @@ export default class Switch extends DiscordBasePlugin {
                     await this.addSquadToMatchendSwitches(+commandSplit[ 1 ], commandSplit[ 2 ])
                     break;
                 case "triggermatchend":
+                    if (!isAdmin) return;
                     this.warn(steamID, 'Switch: Triggering matchend for testing purposes');
                     await this.doSwitcMatchend();
                     this.warn(steamID, 'Switch: Done');
@@ -242,7 +246,9 @@ export default class Switch extends DiscordBasePlugin {
                     }, 2000)
                     break;
                 case "help":
-                    let msg = `${this.options.commandPrefix}\n > now {username|steamID}\n > double {username|steamID}\n > matchend {username|steamID}\n > squad {squad_number} {teamID|teamString}\n > doublesquad {squad_number} {teamID|teamString}\n > matchendsquad {squad_number} {teamID|teamString}`;
+                    let msg = `${this.options.commandPrefix}\n\n > now {username|steamID}\n > double {username|steamID}\n > matchend {username|steamID}\n`;
+                    this.warn(steamID, msg);
+                    msg = `${this.options.commandPrefix}\n\n > squad {squad_number} {teamID|teamString}\n\n > doublesquad {squad_number} {teamID|teamString}\n > matchendsquad {squad_number} {teamID|teamString}`;
                     this.warn(steamID, msg);
                     break;
                 default:
@@ -257,7 +263,7 @@ export default class Switch extends DiscordBasePlugin {
             this.verbose(1, `Team (${teamID}) balance difference:`, availableSwitchSlots)
 
             const recentSwitch = this.recentSwitches.find(e => e.steamID == steamID);
-            const cooldownHoursLeft = (+recentSwitch?.datetime - +(new Date())) / (60 * 60 * 1000);
+            const cooldownHoursLeft = (Date.now() - +recentSwitch?.datetime) / (60 * 60 * 1000);
 
             if (this.getSecondsFromJoin(steamID) / 60 > this.options.switchEnabledMinutes && this.getSecondsFromMatchStart() / 60 > this.options.switchEnabledMinutes) {
                 this.warn(steamID, `A switch can be requested only in the first ${this.options.doubleSwitchEnabledMinutes} mintues from match start or connection to the server`);
@@ -330,7 +336,10 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onPlayerConnected(info) {
-        const { steamID, name: playerName, teamID } = info.player;
+        const steamID = info.steamID;
+        const playerName = info.player?.name;
+        const teamID = info.player?.teamID;
+
         this.verbose(1, `Player connected ${playerName}`)
 
         this.playersConnectionTime[ steamID ] = new Date()
@@ -338,7 +347,10 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onPlayerDisconnected(info) {
-        const { steamID, name: playerName, teamID } = info.player;
+        const steamID = info.steamID;
+        // if (!info.player) return;
+        const playerName = info.player?.name;
+        const teamID = info.player?.teamID;
 
         // this.recentSwitches = this.recentSwitches.filter(p => p.steamID != steamID);
         this.recentDisconnetions[ steamID ] = { teamID: teamID, time: new Date() }
@@ -348,7 +360,12 @@ export default class Switch extends DiscordBasePlugin {
     async switchToPreDisconnectionTeam(info) {
         if (!this.options.switchToOldTeamAfterRejoin) return;
 
-        const { steamID, name: playerName, teamID } = info.player;
+        const steamID = info.steamID;
+
+        if (!info.player) return;
+        const playerName = info.player?.name;
+        const teamID = info.player?.teamID;
+
         const preDisconnectionData = this.recentDisconnetions[ steamID ];
         if (!preDisconnectionData) return;
 
@@ -366,7 +383,7 @@ export default class Switch extends DiscordBasePlugin {
 
     async doubleSwitchPlayer(steamID, forced = false, senderSteamID) {
         const recentSwitch = this.recentDoubleSwitches.find(e => e.steamID == steamID);
-        const cooldownHoursLeft = (+recentSwitch?.datetime - +(new Date())) / (60 * 60 * 1000);
+        const cooldownHoursLeft = (Date.now() - +recentSwitch?.datetime) / (60 * 60 * 1000);
 
         if (!forced) {
             if (this.getSecondsFromJoin(steamID) / 60 > this.options.doubleSwitchEnabledMinutes && this.getSecondsFromMatchStart() / 60 > this.options.doubleSwitchEnabledMinutes) {
