@@ -14,6 +14,10 @@ Switch plugin for SquadJS.
 - `!switch squad {squad_number} {teamID}` - Changes team of all the players of a squad by squad number and team ID.
 - `!switch double {username}` - Double switches team of a player by its username.
 - `!switch double {steamID}` - Double switches team of a player by its SteamID64.
+- `!switch matchend {username}` - Switches team of a player by its username, at the end of the match.
+- `!switch matchend {steamID}` - Switches switches team of a player by its SteamID64, at the end of the match.
+- `!switch doublesquad {squad_number} {team_short_name}` - Double switches all the players of a squad by squad number and team short name.
+- `!switch matchendsquad {squad_number} {team_short_name}` - Switches all the players of a squad at the end of the match.
 
 ### Example configuration
 ```json
