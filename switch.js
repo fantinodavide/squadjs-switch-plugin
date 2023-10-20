@@ -160,7 +160,7 @@ export default class Switch extends DiscordBasePlugin {
 
         this.verbose(1, `${playerName}:\n > Connection: ${this.getSecondsFromJoin(steamID)}\n > Match Start: ${this.getSecondsFromMatchStart()}`)
 
-        if (this.options.doubleSwitchCommands.find(c => c.toLowerCase().startsWith(message)))
+        if (this.options.doubleSwitchCommands.find(c => c.toLowerCase() == message))
             this.doubleSwitchPlayer(steamID)
 
         const commandPrefixInUse = typeof this.options.commandPrefix === 'string' ? this.options.commandPrefix : this.options.commandPrefix.find(c => message.startsWith(c.toLowerCase()));
