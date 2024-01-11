@@ -158,8 +158,6 @@ export default class Switch extends DiscordBasePlugin {
         const teamID = info.player?.teamID;
         const message = info.message.toLowerCase();
 
-        this.verbose(1, `${playerName}:\n > Connection: ${this.getSecondsFromJoin(steamID)}\n > Match Start: ${this.getSecondsFromMatchStart()}`)
-
         if (this.options.doubleSwitchCommands.find(c => c.toLowerCase() == message))
             this.doubleSwitchPlayer(steamID)
 
@@ -167,14 +165,14 @@ export default class Switch extends DiscordBasePlugin {
 
         if ((typeof this.options.commandPrefix === 'string' && !message.startsWith(this.options.commandPrefix)) || (typeof this.options.commandPrefix === 'object' && this.options.commandPrefix.length >= 1 && !this.options.commandPrefix.find(c => message.startsWith(c.toLowerCase())))) return;
 
+        this.verbose(1, `${playerName}:\n > Connection: ${this.getSecondsFromJoin(steamID)}\n > Match Start: ${this.getSecondsFromMatchStart()}`)
         this.verbose(1, 'Received command', message, commandPrefixInUse)
 
         const commandSplit = message.substring(commandPrefixInUse.length).trim().split(' ');
         const subCommand = commandSplit[ 0 ];
 
-
         const isAdmin = info.chat === "ChatAdmin";
-        if (subCommand) {
+        if (subCommand && subCommand != '') {
             let pl;
             switch (subCommand) {
                 case 'now':
