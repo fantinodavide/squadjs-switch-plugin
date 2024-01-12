@@ -167,6 +167,7 @@ export default class Switch extends DiscordBasePlugin {
 
         this.verbose(1, `${playerName}:\n > Connection: ${this.getSecondsFromJoin(steamID)}\n > Match Start: ${this.getSecondsFromMatchStart()}`)
         this.verbose(1, 'Received command', message, commandPrefixInUse)
+        this.verbose(1, `${playerName}:\n > Connection: ${this.getSecondsFromJoin(steamID)}\n > Match Start: ${this.getSecondsFromMatchStart()}`)
 
         const commandSplit = message.substring(commandPrefixInUse.length).trim().split(' ');
         const subCommand = commandSplit[ 0 ];
