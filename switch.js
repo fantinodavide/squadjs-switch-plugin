@@ -153,7 +153,7 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onChatMessage(info) {
-        const steamID = info.steamID;
+        const steamID = info.player?.steamID;
         const playerName = info.player?.name;
         const teamID = info.player?.teamID;
         const message = info.message.toLowerCase();
@@ -334,7 +334,7 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onPlayerConnected(info) {
-        const steamID = info.steamID;
+        const steamID = info.player?.steamID;
         const playerName = info.player?.name;
         const teamID = info.player?.teamID;
 
@@ -345,7 +345,7 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     async onPlayerDisconnected(info) {
-        const steamID = info.steamID;
+        const steamID = info.player?.steamID;
         // if (!info.player) return;
         const playerName = info.player?.name;
         const teamID = info.player?.teamID;
@@ -358,7 +358,7 @@ export default class Switch extends DiscordBasePlugin {
     async switchToPreDisconnectionTeam(info) {
         if (!this.options.switchToOldTeamAfterRejoin) return;
 
-        const steamID = info.steamID;
+        const steamID = info.player?.steamID;
 
         if (!info.player) return;
         const playerName = info.player?.name;
