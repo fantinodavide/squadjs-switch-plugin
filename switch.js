@@ -454,27 +454,8 @@ export default class Switch extends DiscordBasePlugin {
     }
 
     getFactionId(team) {
-        team = team.toUpperCase();
-
-        const translations = {
-            'United States Army': "USA",
-            'United States Marine Corps': "USMC",
-            'Russian Ground Forces': "RUS",
-            'British Army': "GB",
-            'Canadian Army': "CAF",
-            'Australian Defence Force': "AUS",
-            'Irregular Militia Forces': "IRR",
-            'Middle Eastern Alliance': "MEA",
-            'Insurgent Forces': "INS"
-        }
-
-        for (let t in this.server.currentLayer.teams) {
-            // this.verbose(1, `Checking "${team}" with "${t}-${this.server.currentLayer.teams[ t ].faction}" - ${translations[ this.server.currentLayer.teams[ t ].faction ]}`, this.server.currentLayer.teams[ t ].faction.split(' ').map(e => e[ 0 ]).join('').toUpperCase())
-            if (
-                (translations[ this.server.currentLayer.teams[ t ].faction ]?.toUpperCase() == team) ||
-                (this.server.currentLayer.teams[ t ].faction.split(' ').map(e => e[ 0 ]).join('').toUpperCase() == team)
-            ) return +t + 1;
-        }
+        const firstPlayer = this.server.players.find(p => p.role.toLowerCase().startsWith(team.toLowerCase()))
+        if (firstPlayer) return firstPlayer.teamID
 
         return null;
     }
