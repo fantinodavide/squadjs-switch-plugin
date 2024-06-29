@@ -385,7 +385,7 @@ export default class Switch extends DiscordBasePlugin {
 
         if (!forced) {
             if (this.getSecondsFromJoin(steamID) / 60 > this.options.doubleSwitchEnabledMinutes && this.getSecondsFromMatchStart() / 60 > this.options.doubleSwitchEnabledMinutes) {
-                this.warn(steamID, `A double switch can be requested only in the first ${this.options.doubleSwitchEnabledMinutes} mintues from match start or connection to the server`);
+                this.warn(steamID, `A double switch can be requested only in the first ${this.options.doubleSwitchEnabledMinutes} minutes from match start or connection to the server`);
                 return;
             }
 
@@ -470,8 +470,8 @@ export default class Switch extends DiscordBasePlugin {
 
     getPlayersByUsername(username) {
         return this.server.players.filter(p =>
-            p.name.toLowerCase().includes(username.toLowerCase()) &&
-            p.name.length / username.length < 3
+            p.name.toLowerCase().includes(username.toLowerCase())
+            //&& p.name.length / username.length < 3
         )
     }
     getPlayerBySteamID(steamID) {
