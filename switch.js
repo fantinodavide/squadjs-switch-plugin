@@ -243,8 +243,13 @@ export default class Switch extends DiscordBasePlugin {
                         this.warn(steamID, 'Test 3')
                     }, 2000)
                     break;
+                case "clear":
+                    if (!isAdmin) return;
+                    await this.models.Endmatch.destroy({ where: {} });
+                    this.warn(steamID, 'All queued match end switches have been cleared.');
+                    break;
                 case "help":
-                    let msg = `${this.options.commandPrefix}\n\n > now {username|steamID}\n > double {username|steamID}\n > matchend {username|steamID}\n`;
+                    let msg = `${this.options.commandPrefix}\n\n > now {username|steamID}\n > double {username|steamID}\n > matchend {username|steamID}\n > clear\n`;
                     this.warn(steamID, msg);
                     msg = `${this.options.commandPrefix}\n\n > squad {squad_number} {teamID|teamString}\n\n > doublesquad {squad_number} {teamID|teamString}\n > matchendsquad {squad_number} {teamID|teamString}`;
                     this.warn(steamID, msg);
